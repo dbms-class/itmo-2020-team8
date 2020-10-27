@@ -10,8 +10,10 @@ CREATE TABLE Building(
   -- дом
 );
 
---Таблица обьектов, расположеных на територии
+
+
 CREATE TABLE Facility (
+  -- Таблица обьектов, расположеных на територи
   id            SERIAL PRIMARY KEY,
   -- идентификатор обьекта
   building_id    INT NOT NULL REFERENCES Building(id),
@@ -22,17 +24,18 @@ CREATE TABLE Facility (
   -- опциональное название
 )	;
 
--- руководители делегаций
+
 CREATE TABLE Manager (
-  id            SERIAL PRIMARY KEY,
+  -- руководители делегаций
+  id SERIAL PRIMARY KEY,
   -- идентификатор руководителя
   name          TEXT NOT NULL ,
   -- имя руководителя
-  phone         TEXT NOT NULL CHECK(phone ~ '^[0-9]*$')
+  phone         TEXT NOT NULL 
   -- телефон
 );
 
---Таблица национальных делегаций
+-- Таблица национальных делегаций
 CREATE TABLE Delegation	(
   id            SERIAL PRIMARY KEY,
   -- идентификатор делегации
@@ -81,10 +84,10 @@ create table Sportsman (
 create table Competition (
   id serial primary key,
   -- название соревнования, причем 2 соревнований с одинаковым именем не существует
-  name text not null UNIQUE,
+  name VARCHAR(100) not null UNIQUE,
   -- дата проведения соревнования
   -- в одно и тоже время не может проводиться 2 соревнования
-  date date not null UNIQUE,
+  day date not null UNIQUE,
   -- место проведения соревнования
   facility_id int not null references Facility(id),
   -- название спортивной дисциплины по которому проводиться данное соревнование
@@ -92,7 +95,7 @@ create table Competition (
 );
 
 
---Таблица: Медали
+-- Таблица: Медали
 create table Medal (
     -- спортсмен, получивший медаль
   athlete_id int not null references Athlete(id),
@@ -109,8 +112,8 @@ create table Medal (
 -- Справочник
 create table Sport (
   id serial primary key,
-  --name - представляет название спортивной дисциплины
-  name text not null UNIQUE
+  -- name - представляет название спортивной дисциплины
+  name VARCHAR(200) not null UNIQUE
 );
 
 -- Площадки для проведения соревнований по дисциплинам
@@ -128,7 +131,7 @@ create table Participant (
   -- волонтер, приглашенный на соревнование
   volunteer_id int references Volunteer(id),
   -- соревнование на которое собрались участники
-  competition_id int references Competition(id) not null,
+  competition_id int not null references Competition(id) ,
   -- информация о том, является ли участник соревнования спортсменом
   is_athlete bool not null,
   CHECK ( (is_athlete and volunteer_id is null) or (not is_athlete and volunteer_id is not null))
@@ -143,7 +146,7 @@ create table Participant (
 CREATE TABLE IF NOT EXISTS Volunteer(
   id           INT PRIMARY KEY,                                 -- номер карточки волонтера, чтобы он был уникально идентифицирован и связан с атлетами
   name         TEXT NOT NULL CHECK(name != ''),                          -- имя волонтера, оно не должно быть пустым
-  phone        VARCHAR(11) NOT NULL UNIQUE CHECK(phone ~ '^[0-9]*$')    -- номер телефона волонтера, регулярка для того, чтобы была, она допускает довольно интересные телефонные номера
+  phone        VARCHAR(11) NOT NULL UNIQUE     -- номер телефона волонтера, регулярка для того, чтобы была, она допускает довольно интересные телефонные номера
 );
 
 -- Таблица транспортных средств для спортсменов и всех всех
@@ -157,7 +160,7 @@ CREATE TABLE IF NOT EXISTS VolunteerTask(
   id           SERIAL PRIMARY KEY,                       -- идентификатор задачи волонтера, чтобы их можно было идентифицировать уникально
   volunteer_id int NOT NULL REFERENCES Volunteer(id),        -- идентификатор волонтера, который на задаче, чтобы задача не могла существовать без исполнителя-волонтера
   transport_id int DEFAULT NULL REFERENCES Transport(id),    -- идентификатор ТС(но его может не быть поэтому по дефолту мы ставим туда NULL), потому что к задаче может быть привязана ТС
-  datetime     TIMESTAMPTZ NOT NULL ,                     -- время дата выдачи задачи(должна по идее быть автогенерированной на момент записи)
+  datetime     DATE NOT NULL,                     -- время дата выдачи задачи(должна по идее быть автогенерированной на момент записи)
   description  TEXT NOT NULL            -- описание задачи для волонтера(по умолчанию будет пустым)
 );
 
