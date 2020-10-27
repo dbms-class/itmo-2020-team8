@@ -67,11 +67,6 @@ CREATE TABLE Athlete (
 );
 
 
-
-
-
-
-
 -- part2
 
 -- Справочник
