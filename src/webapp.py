@@ -4,8 +4,9 @@
 import cherrypy
 
 from src.connect import parse_cmd_line
-from src.connect import create_connection
 from src.static import index
+from src.model import *
+
 
 
 @cherrypy.expose
@@ -21,44 +22,82 @@ class App(object):
     def index(self):
         return index()
 
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def athletes(self, athlete_id=None):
-        with create_connection(self.args) as db:
+    def register(self, sportsman, country, volonteer_id):
+        is_ok = register_athletes(sportsman, country, volonteer_id)
+        if not is_ok:
+            raise cherrypy.HTTPError(400)
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def volunteer_load(self, volunteer_id=None, sportsman_count=0, total_task_count=0):
+        db = pgpool.getconn()
+        try:
             cur = db.cursor()
-            if athlete_id is None:
-                cur.execute("SELECT id, name FROM Athletes")
+            magic_query = f"""
+            with volunteer_to_task_count as (
+                select volunteer_id, count(volunteer_id) as task_count from VolunteerTask group by volunteer_id
+            ), volunteer_to_sportsman_count as (
+                select volonteer_id, count(volonteer_id) as sportsman_count from Athletes group by volonteer_id
+            ), volunteer_to_next_task as (
+                select id as task_id, volunteertask.volunteer_id, datetime from volunteertask
+                Join (
+                select volunteer_id, Min(Now() - datetime) as diff from VolunteerTask group by volunteer_id
+            ) t on volunteertask.volunteer_id = t.volunteer_id and Now() - datetime = t.diff
+            )
+            select id, name, sportsman_count, task_count, task_id, datetime from Volunteer
+                Join volunteer_to_task_count on id = volunteer_to_task_count.volunteer_id
+                Join volunteer_to_sportsman_count on id = volunteer_to_sportsman_count.volonteer_id
+                JOIN volunteer_to_next_task on id = volunteer_to_next_task.volunteer_id
+                where task_count >= {total_task_count} AND sportsman_count >= {sportsman_count}
+            """
+            if volunteer_id is None:
+                total_magic_query = magic_query + ';'
             else:
-                cur.execute("SELECT id, name FROM Athletes id= %s", athlete_id)
+                total_magic_query = f"Select * from ({magic_query}) as t where t.id={volunteer_id};"
+            cur.execute(total_magic_query)
             result = []
-            athletes = cur.fetchall()
-            for c in athletes:
-                result.append({"id": c[0], "name": c[1]})
+            countries = cur.fetchall()
+            for c in countries:
+                result.append({"volunteer_id": c[0],
+                               "volunteer_name": c[1],
+                               "sportsman_count": c[2],
+                               "total_task_count": c[3],
+                               "next_task_id": c[4],
+                               }
+                                ) #"next_task_time": c[5] is not serializable
             return result
+        finally:
+            pgpool.putconn(db)
+
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def countries(self):
-        with create_connection(self.args) as db:
+        db = pgpool.getconn()
+        try:
             cur = db.cursor()
-            cur.execute("SELECT id, country FROM Delegation")
+            cur.execute("SELECT id, name FROM Countries")
             result = []
             countries = cur.fetchall()
             for c in countries:
                 result.append({"id": c[0], "country": c[1]})
             return result
+        finally:
+            pgpool.putconn(db)
+
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def volunteers(self):
-        with create_connection(self.args) as db:
-            cur = db.cursor()
-            cur.execute("SELECT id, name FROM Volunteer")
-            result = []
-            volunteers = cur.fetchall()
-            for c in volunteers:
-                result.append({"id": c[0], "name": c[1]})
-            return result
+        all_volunteers_ = all_volunteers()
+        result = []
+        for v in all_volunteers_:
+            result.append({"id": v.id, "name": v.name()})
+        return result
 
 
 cherrypy.config.update({

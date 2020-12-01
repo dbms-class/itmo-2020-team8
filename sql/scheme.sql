@@ -1,13 +1,16 @@
 -- part1
 -- Таблица адресов всех зданий
 CREATE TABLE Address(
+  id serial primary key,
   -- улица
   street        TEXT NOT NULL,
   -- дом
   house         INT NOT NULL,
   -- ключ-пара
-  primary key (street, house)
+  UNIQUE (street, house)
 );
+
+
 
 CREATE TYPE BuildingType AS ENUM (
  'жилой дом',
@@ -25,12 +28,9 @@ CREATE TABLE Facility (
   type          BuildingType,
   -- опциональное название
   name          TEXT,
-  -- улица
-  street        TEXT NOT NULL,
-  -- дом
-  house         INT NOT NULL,
-  FOREIGN KEY (street, house) REFERENCES Address(street, house)
-)	;
+  -- аддрес объекта
+  address_id Int references Address
+);
 
 -- Таблица руководителей делегаций
 CREATE TABLE Manager (
@@ -42,16 +42,24 @@ CREATE TABLE Manager (
   phone         TEXT NOT NULL
 );
 
+-- Справочник стран
+create table Countries (
+    -- идентификатор страны
+    id SERIAL PRIMARY KEY,
+    -- название страны
+    name TEXT NOT NULL UNIQUE
+);
+
 -- Таблица национальных делегаций
 CREATE TABLE Delegation	(
   -- идентификатор делегации
   id            SERIAL PRIMARY KEY,
   -- идентификатор руководителя делегации, по нему узнаем данные менеджера
-  manager_id    INT UNIQUE NOT NULL REFERENCES Manager(id),
+  manager_id    INT UNIQUE NOT NULL REFERENCES Manager,
   -- идентификатор обьекта в котором расположен штаб, здание где находится штаб
-  address_id    INT NOT NULL REFERENCES Facility(id),
+  address_id    INT NOT NULL REFERENCES Facility,
   -- название страны из которой прибыла делегация
-  country       TEXT NOT NULL
+  country_id    int NOT NULL REFERENCES Countries
 );
 
 CREATE TYPE GenderType AS ENUM (
@@ -80,15 +88,12 @@ CREATE TABLE Athletes (
   weight        INT CHECK(weight >= 0 AND weight <= 400),
   -- возраст участника
   age           INT  CHECK(age > 0 AND age <= 150),
-  -- идентификатор делигации, у каждого участника должна быть делегация, а из делегации можно восстановить кто руководитель этого спортсмена
-  delegation_id INT NOT NULL REFERENCES Delegation(id),
+  -- идентификатор страны из которой прибыл спортсмен, по которому можно восстановить делегацию к которой примыкает спортсмен
+  country_id    int NOT NULL REFERENCES Countries,
   -- идентификатор прикрепленного волонтера, можем узнать кто прикреплен к участнику
-  volonteer_id  INT NOT NULL REFERENCES Volunteer(id),
-  -- улица
-  street        TEXT,
-  -- дом
-  house         INT,
-  FOREIGN KEY (street, house) REFERENCES Address(street, house)
+  volonteer_id  INT NOT NULL REFERENCES Volunteer,
+  -- аддрес проживания спортсмена
+  address_id Int REFERENCES Address
 );
 
 -- part2
@@ -152,8 +157,6 @@ create table Participant (
   competition_id int not null references Competition(id)
 );
 
-
-
 -- part3
 
 -- Таблица транспортных средств для спортсменов и всех всех
@@ -166,8 +169,26 @@ CREATE TABLE IF NOT EXISTS Transport(
 CREATE TABLE IF NOT EXISTS VolunteerTask(
   id           SERIAL PRIMARY KEY,                       -- идентификатор задачи волонтера, чтобы их можно было идентифицировать уникально
   volunteer_id int NOT NULL REFERENCES Volunteer(id),        -- идентификатор волонтера, который на задаче, чтобы задача не могла существовать без исполнителя-волонтера
-  transport_id int DEFAULT NULL REFERENCES Transport(id),    -- идентификатор ТС(но его может не быть поэтому по дефолту мы ставим туда NULL), потому что к задаче может быть привязана ТС
+  transport_id VARCHAR(10) DEFAULT NULL REFERENCES Transport(id),    -- идентификатор ТС(но его может не быть поэтому по дефолту мы ставим туда NULL), потому что к задаче может быть привязана ТС
   datetime     timestamp NOT NULL,                     -- время дата выдачи задачи(должна по идее быть автогенерированной на момент записи)
   description  TEXT NOT NULL            -- описание задачи для волонтера(по умолчанию будет пустым)
 );
 
+-- select * from countries;
+-- select * from Athletes;
+
+with volunteer_to_task_count as (
+    select volunteer_id, count(volunteer_id) as task_count from VolunteerTask group by volunteer_id
+), volunteer_to_sportsman_count as (
+    select volonteer_id, count(volonteer_id) as sportsman_count from Athletes group by volonteer_id
+), volunteer_to_next_task as (
+    select id as task_id, volunteertask.volunteer_id, datetime from volunteertask
+    Join (
+    select volunteer_id, Min(Now() - datetime) as diff from VolunteerTask group by volunteer_id
+) t on volunteertask.volunteer_id = t.volunteer_id and Now() - datetime = t.diff
+)
+select id, name, sportsman_count, task_count, task_id, datetime from Volunteer
+    Join volunteer_to_task_count on id = volunteer_to_task_count.volunteer_id
+    Join volunteer_to_sportsman_count on id = volunteer_to_sportsman_count.volonteer_id
+    JOIN volunteer_to_next_task on id = volunteer_to_next_task.volunteer_id;
+--
