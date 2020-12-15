@@ -14,9 +14,9 @@ CREATE TABLE Address(
 
 CREATE TYPE BuildingType AS ENUM (
  'жилой дом',
- 'административное здание'
+ 'административное здание',
  'бассеин',
- 'столовая'
+ 'столовая',
  'спортивная площадка'
  );
 
@@ -57,7 +57,7 @@ CREATE TABLE Delegation	(
   -- идентификатор руководителя делегации, по нему узнаем данные менеджера
   manager_id    INT UNIQUE NOT NULL REFERENCES Manager,
   -- идентификатор обьекта в котором расположен штаб, здание где находится штаб
-  address_id    INT NOT NULL REFERENCES Facility,
+  facility_id    INT NOT NULL REFERENCES Facility,
   -- название страны из которой прибыла делегация
   country_id    int NOT NULL REFERENCES Countries
 );
@@ -177,18 +177,18 @@ CREATE TABLE IF NOT EXISTS VolunteerTask(
 -- select * from countries;
 -- select * from Athletes;
 
-with volunteer_to_task_count as (
-    select volunteer_id, count(volunteer_id) as task_count from VolunteerTask group by volunteer_id
-), volunteer_to_sportsman_count as (
-    select volonteer_id, count(volonteer_id) as sportsman_count from Athletes group by volonteer_id
-), volunteer_to_next_task as (
-    select id as task_id, volunteertask.volunteer_id, datetime from volunteertask
-    Join (
-    select volunteer_id, Min(Now() - datetime) as diff from VolunteerTask group by volunteer_id
-) t on volunteertask.volunteer_id = t.volunteer_id and Now() - datetime = t.diff
-)
-select id, name, sportsman_count, task_count, task_id, datetime from Volunteer
-    Join volunteer_to_task_count on id = volunteer_to_task_count.volunteer_id
-    Join volunteer_to_sportsman_count on id = volunteer_to_sportsman_count.volonteer_id
-    JOIN volunteer_to_next_task on id = volunteer_to_next_task.volunteer_id;
+-- with volunteer_to_task_count as (
+--     select volunteer_id, count(volunteer_id) as task_count from VolunteerTask group by volunteer_id
+-- ), volunteer_to_sportsman_count as (
+--     select volonteer_id, count(volonteer_id) as sportsman_count from Athletes group by volonteer_id
+-- ), volunteer_to_next_task as (
+--     select id as task_id, volunteertask.volunteer_id, datetime from volunteertask
+--     Join (
+--     select volunteer_id, Min(Now() - datetime) as diff from VolunteerTask group by volunteer_id
+-- ) t on volunteertask.volunteer_id = t.volunteer_id and Now() - datetime = t.diff
+-- )
+-- select id, name, sportsman_count, task_count, task_id, datetime from Volunteer
+--     Join volunteer_to_task_count on id = volunteer_to_task_count.volunteer_id
+--     Join volunteer_to_sportsman_count on id = volunteer_to_sportsman_count.volonteer_id
+--     JOIN volunteer_to_next_task on id = volunteer_to_next_task.volunteer_id;
 --

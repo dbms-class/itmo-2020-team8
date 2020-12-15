@@ -62,16 +62,58 @@ class App(object):
             result = []
             countries = cur.fetchall()
             for c in countries:
-                result.append({"volunteer_id": c[0],
-                               "volunteer_name": c[1],
-                               "sportsman_count": c[2],
-                               "total_task_count": c[3],
-                               "next_task_id": c[4],
-                               }
-                                ) #"next_task_time": c[5] is not serializable
+                result.append(
+                    {
+                        "volunteer_id": c[0],
+                       "volunteer_name": c[1],
+                       "sportsman_count": c[2],
+                       "total_task_count": c[3],
+                       "next_task_id": c[4],
+                        "next_task_time": str(c[5])
+                   }
+                )
             return result
         finally:
             pgpool.putconn(db)
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def volunteer_unassign(self, volunteer_id, task_ids):
+        """
+        Предназначается для автоматического переназначения задач
+        волонтера на других волонтеров.
+        :param volunteer_id: id волонтера Прогульщика
+        :param task_ids: список идентификаторов
+                        задач, разделённых запятыми.
+                        Специальное значение * означает
+                        ”все задачи волонтера"
+        :return: JSON уазанного ниже вида, где каждый элемент массива
+                обозначает, какому Сменщику переназначена задача:
+            [
+                {
+                    ”task_id”: 1,
+                    5”new_volunteer_name”: ”Miguel”,
+                    ”new_volunteer_id”: 23
+                },
+            ...
+            ]
+        """
+        volunteer_id = int(volunteer_id)
+        if isinstance(task_ids, str) and task_ids == '*':
+            all_tasks = get_volunter_tasks(volonter_id=volunteer_id)
+        else:
+            all_tasks = []
+            for task_id in task_ids.split(','):
+                all_tasks.append(VolunterTask(int(task_id)))
+        answ = assign_another_volunter(volunteer_id, all_tasks)
+        result = []
+        for c in answ:
+            result.append({
+                "task_id": c[0],
+                "new_volunteer_name": c[1],
+                "new_volunteer_id": c[2]
+            })
+        return result
 
 
     @cherrypy.expose
