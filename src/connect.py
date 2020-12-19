@@ -10,6 +10,7 @@ import psycopg2 as pg_driver
 # Находится в модуле sqlite3, который можно установить командой
 # pip install sqlite3 или её аналогом.
 import sqlite3 as sqlite_driver
+from psycopg2 import pool
 
 
 # Разбирает аргументы командной строки.
@@ -23,27 +24,11 @@ def parse_cmd_line():
     parser.add_argument('--pg-database', help='PostgreSQL database', default='')
     parser.add_argument('--sqlite-file', help='SQLite3 database file. Type :memory: to use in-memory SQLite3 database',
                         default='sqlite.db')
+
     return parser.parse_args()
-
-
-# Создаёт подключение к постгресу в соответствии с аргументами командной строки.
-def create_connection_pg(args):
-    return pg_driver.connect(user=args.pg_user, password=args.pg_password, host=args.pg_host, port=args.pg_port)
-
-
-# Создаёт подключение к SQLite в соответствии с аргументами командной строки.
-def create_connection_sqlite(args):
-    return sqlite_driver.connect(args.sqlite_file)
-
-
-# Создаёт подключение в соответствии с аргументами командной строки.
-# Если указан аргумент --sqlite-file то создается подключение к SQLite,
-# в противном случае создаётся подключение к PostgreSQL
-def create_connection(args):
-    if args.sqlite_file is not None:
-        return create_connection_sqlite(args)
-    else:
-        return create_connection_pg(args)
-
-
-
+# --pg-host=127.0.0.1 --pg-port=5432 --pg-user=postgres --pg-password=lj,hsqpostgresql --pg-database=postgres
+# user='postgres',
+#                                    password="lj,hsqpostgresql",
+#                                    host='127.0.0.1',
+#                                    port='5432',
+#                                    database='postgres'

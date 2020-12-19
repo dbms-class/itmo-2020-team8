@@ -3,16 +3,25 @@
 # Веб сервер
 import cherrypy
 
+import psycopg2.pool as pg_pool
 from src.connect import parse_cmd_line
 from src.static import index
 from src.model import *
 
-
+global_pool = None
 
 @cherrypy.expose
 class App(object):
     def __init__(self, args):
         self.args = args
+        global global_pool
+        global_pool = pg_pool.SimpleConnectionPool(1, 20,
+                                           user=args.pg_user,
+                                           password=args.pg_password,
+                                           host=args.pg_host,
+                                           port=args.pg_port,
+                                           database=args.pg_database
+                                           )
 
     @cherrypy.expose
     def start(self):
@@ -34,7 +43,7 @@ class App(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def volunteer_load(self, volunteer_id=None, sportsman_count=0, total_task_count=0):
-        db = pgpool.getconn()
+        db = global_pool.getconn()
         try:
             cur = db.cursor()
             magic_query = f"""
@@ -74,7 +83,7 @@ class App(object):
                 )
             return result
         finally:
-            pgpool.putconn(db)
+            global_pool.putconn(db)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -119,7 +128,7 @@ class App(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def countries(self):
-        db = pgpool.getconn()
+        db = global_pool.getconn()
         try:
             cur = db.cursor()
             cur.execute("SELECT id, name FROM Countries")
@@ -129,7 +138,7 @@ class App(object):
                 result.append({"id": c[0], "country": c[1]})
             return result
         finally:
-            pgpool.putconn(db)
+            global_pool.putconn(db)
 
 
     @cherrypy.expose

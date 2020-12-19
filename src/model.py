@@ -1,20 +1,10 @@
-from psycopg2 import pool
-import psycopg2 as pg_driver
 from functools import partial
 import random
-
-pgpool = pool.SimpleConnectionPool(1, 20,
-                                   user='postgres',
-                                   password="lj,hsqpostgresql",
-                                   host='127.0.0.1',
-                                   port='5432',
-                                   database='postgres'
-                                   )
-
+from src.webapp import global_pool
 
 
 def all_volunteers():
-    db = pgpool.getconn()
+    db = global_pool.getconn()
     try:
         cur = db.cursor()
         cur.execute('SELECT id FROM Volunteer')
@@ -23,26 +13,25 @@ def all_volunteers():
             result.append(Volunteer(p[0]))
         return result
     finally:
-        pgpool.putconn(db)
+        global_pool.putconn(db)
 
 
 class Volunteer:
     def __init__(self, id):
         self.id = id
 
-
     def name(self):
-        db = pgpool.getconn()
+        db = global_pool.getconn()
         try:
             cur = db.cursor()
             cur.execute(f"SELECT name FROM Volunteer WHERE id={self.id}")
             return cur.fetchone()[0]
         finally:
-            pgpool.putconn(db)
+            global_pool.putconn(db)
 
 
 def all_athletes():
-    db = pgpool.getconn()
+    db = global_pool.getconn()
     try:
         cur = db.cursor()
         cur.execute('SELECT id FROM Athletes')
@@ -51,7 +40,7 @@ def all_athletes():
             result.append(Athlete(p[0]))
         return result
     finally:
-        pgpool.putconn(db)
+        global_pool.putconn(db)
 
 
 def get_country_id(cursor, country_name):
@@ -74,7 +63,7 @@ def is_number(string):
 
 
 def register_athletes(sportsman, country, volonteer_id):
-    db = pgpool.getconn()
+    db = global_pool.getconn()
     try:
         cur = db.cursor()
         country_id = get_country_id(cur, country)
@@ -84,7 +73,7 @@ def register_athletes(sportsman, country, volonteer_id):
             # спортсмен с sportsman_id уже существует в базе данных
             # поэтому обновим значения country и volonteer_id у спортсмена с идентификатором sportsman_id
             sportsman_id = int(sportsman)
-            print("Before", sportsman_id, country_id,  volonteer_id)
+            print("Before", sportsman_id, country_id, volonteer_id)
             cur.execute(f"""UPDATE Athletes SET country_id={country_id}, 
                                                 volonteer_id={volonteer_id} 
                                             WHERE id={sportsman_id}""")
@@ -101,7 +90,7 @@ def register_athletes(sportsman, country, volonteer_id):
         else:
             return False
     finally:
-        pgpool.putconn(db)
+        global_pool.putconn(db)
 
 
 def check_first_cond(volonter_1, volonter_2):
@@ -111,7 +100,7 @@ def check_first_cond(volonter_1, volonter_2):
 
 
 def get_volunter_tasks(volonter_id):
-    db = pgpool.getconn()
+    db = global_pool.getconn()
     try:
         cur = db.cursor()
         cur.execute(f"""select id, datetime from volunteertask where volunteer_id={volonter_id};""")
@@ -120,7 +109,7 @@ def get_volunter_tasks(volonter_id):
             result.add(VolunterTask(p[0]))
         return result
     finally:
-        pgpool.putconn(db)
+        global_pool.putconn(db)
 
 
 def check_second_cond(progul_task, volunter_tasks):
@@ -171,17 +160,17 @@ class VolunterTask:
         self.id = id
 
     def datetime_hours(self):
-        db = pgpool.getconn()
+        db = global_pool.getconn()
         try:
             cur = db.cursor()
             cur.execute(f"SELECT extract(hours from datetime) FROM volunteertask WHERE id={self.id}")
             return cur.fetchone()[0]
         finally:
-            pgpool.putconn(db)
+            global_pool.putconn(db)
 
 
 def get_delegation_ids_by_volonter(volonter_id):
-    db = pgpool.getconn()
+    db = global_pool.getconn()
     try:
         cur = db.cursor()
         cur.execute(f"""select delegation.id from athletes Join 
@@ -192,7 +181,7 @@ def get_delegation_ids_by_volonter(volonter_id):
             result.add(p[0])
         return result
     finally:
-        pgpool.putconn(db)
+        global_pool.putconn(db)
 
 
 class Athlete:
@@ -200,11 +189,10 @@ class Athlete:
         self.id = id
 
     def name(self):
-        db = pgpool.getconn()
+        db = global_pool.getconn()
         try:
             cur = db.cursor()
             cur.execute(f"SELECT name FROM Athletes WHERE id={self.id}")
             return cur.fetchone()[0]
         finally:
-            pgpool.putconn(db)
-
+            global_pool.putconn(db)

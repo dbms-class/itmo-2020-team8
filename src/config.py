@@ -1,4 +1,5 @@
 from src.model import *
+from src.webapp import global_pool
 from random import randint
 import random
 
@@ -17,14 +18,14 @@ def wrap_str(string):
 
 
 def my_insert(query):
-    db = pgpool.getconn()
+    db = global_pool.getconn()
     try:
         cur = db.cursor()
         cur.execute(query)
         db.commit()
         return cur.rowcount
     finally:
-        pgpool.putconn(db)
+        global_pool.putconn(db)
 
 
 def add_some_countries():
