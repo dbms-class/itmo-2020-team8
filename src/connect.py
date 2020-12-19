@@ -26,9 +26,3 @@ def parse_cmd_line():
                         default='sqlite.db')
 
     return parser.parse_args()
-# --pg-host=127.0.0.1 --pg-port=5432 --pg-user=postgres --pg-password=lj,hsqpostgresql --pg-database=postgres
-# user='postgres',
-#                                    password="lj,hsqpostgresql",
-#                                    host='127.0.0.1',
-#                                    port='5432',
-#                                    database='postgres'
