@@ -1,6 +1,12 @@
 from functools import partial
 import random
-from src.webapp import global_pool
+
+
+def global_pool_init(pool):
+    global global_pool
+    global_pool = pool
+
+global_pool = None
 
 
 def all_volunteers():

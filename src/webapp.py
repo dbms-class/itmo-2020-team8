@@ -22,6 +22,7 @@ class App(object):
                                            port=args.pg_port,
                                            database=args.pg_database
                                            )
+        global_pool_init(global_pool)
 
     @cherrypy.expose
     def start(self):
